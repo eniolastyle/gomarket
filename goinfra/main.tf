@@ -132,11 +132,7 @@ resource "aws_s3_bucket_object" "assets" {
 # Create a list of server instance IDs to monitor
 variable "server_instance_ids" {
   type = list(string)
-
-}
-
-locals {
-  server_instance_ids = ["${aws_instance.goserver.id}", "${aws_instance.goclient.id}"]
+  default = [aws_instance.goserver.id, aws_instance.goclient.id]
 }
 
 # Create a CloudWatch alarm for each server instance
