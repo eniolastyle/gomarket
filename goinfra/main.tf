@@ -129,10 +129,18 @@ resource "aws_s3_bucket_object" "assets" {
   recursive = true
 }
 
+# Retrieve the instance IDs dynamically based on tags
+data "aws_instances" "servers" {
+  filter {
+    name   = "tag:Name"
+    values = ["goserver", "goclient"]
+  }
+}
+
 # Create a list of server instance IDs to monitor
 variable "server_instance_ids" {
   type = list(string)
-  default = [aws_instance.goserver.id, aws_instance.goclient.id]
+  default = data.aws_instances.servers.instances[*].id
 }
 
 # Create a CloudWatch alarm for each server instance
