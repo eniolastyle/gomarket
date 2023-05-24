@@ -31,7 +31,7 @@ data "aws_ami" "ubuntu" {
 }
 
 data "template_file" "setup" {
-  template = file("./goinfra/setup.tpl")
+  template = file("./setup.tpl")
 }
 
 # Create a security group allowing inbound SSH and HTTP access
