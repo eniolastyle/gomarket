@@ -30,7 +30,7 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
 }
 
-data "template_file" "nginx_data_script" {
+data "template_file" "setup" {
   template = file("./goinfra/setup.tpl")
 }
 
@@ -93,9 +93,7 @@ resource "aws_instance" "goclient" {
 # Create an S3 bucket
 resource "aws_s3_bucket" "gobucket" {
   bucket        = "gobucket"
-  acl {
-    owner = "BucketOwnerFullControl"
-  }
+  acl = 
   force_destroy = true
 }
 
