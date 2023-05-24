@@ -155,15 +155,9 @@ jobs:
             npm install -g pm2
             # Clone or pull the repository
             REPO_DIR="gomarket"
-            if [ -d "$REPO_DIR" ]; then
-              echo "Repository already exists. Performing git pull..."
-              cd "$REPO_DIR"
-              git pull
-            else
-              echo "Repository not found. Cloning the repository..."
-              git clone https://github.com/eniolastyle/gomarket.git "$REPO_DIR"
-              cd "$REPO_DIR"
-            fi
+            sudo rm -rf "$REPO_DIR" || true
+            git clone https://github.com/eniolastyle/gomarket.git "$REPO_DIR"
+            cd "$REPO_DIR"
             # Install dependencies and start the application
             cd goclient
             touch .env

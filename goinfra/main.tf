@@ -102,7 +102,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_utilization_alarm" {
   statistic           = "Average"
   threshold           = "70"
   alarm_description   = "Alarm when CPU utilization exceeds 70%"
-  alarm_actions       = ["arn:aws:sns:us-east-1:${var.aws_account_id}:HighCPUUtilizationNotification"] # Update with desired SNS topic ARN
+  alarm_actions       = ["arn:aws:sns:us-east-1:${var.aws_account_id}:HighCPUUtilizationNotification"] 
 #  alarm_enabled       = true
 
   dimensions = {
