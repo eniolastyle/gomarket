@@ -92,7 +92,7 @@ resource "aws_instance" "goclient" {
 
 # Create an S3 bucket
 resource "aws_s3_bucket" "gobucket" {
-  bucket        = "gobucket"
+  bucket        = "gomarketbucket"
 #  acl 		= "public-read"
   force_destroy = true
 }
