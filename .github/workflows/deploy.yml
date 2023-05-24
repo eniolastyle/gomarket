@@ -15,9 +15,9 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   TF_STATE_BUCKET_NAME: ${{ secrets.AWS_TF_STATE_BUCKET_NAME }}
   PRIVATE_SSH_KEY: ${{ secrets.AWS_PRIVATE_SSH_KEY }}
-  SERVER_ENV: ${{ secrets.SERVER_ENV_VARIABLES }}
   AWS_REGION: us-east-1
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  # SERVER_ENV: ${{ secrets.SERVER_ENV_VARIABLES }}
 
 jobs:
   golint:
@@ -89,6 +89,7 @@ jobs:
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |-
+            cd /home/ubuntu/
             echo "---NVM (Node Version Manager) - NODE & NPM---"
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
             source ~/.bashrc
@@ -99,7 +100,7 @@ jobs:
             echo "-----PM2------"
             sudo npm install -g pm2
             sudo pm2 startup systemd
-            REPO_DIR="/home/ubuntu/gomarket"
+            REPO_DIR="gomarket"
             if [ -d "$REPO_DIR" ]; then
               echo "Repository already exists. Performing git pull..."
               cd $REPO_DIR
@@ -111,8 +112,6 @@ jobs:
             fi
             cd goserver
             touch .env
-            echo ${{ env.SERVER_ENV }}
-            echo "${{ env.SERVER_ENV }}" > .env
             npm install
             sudo pm2 delete goserver || true
             pm2 start app.js --name goserver
@@ -138,6 +137,7 @@ jobs:
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |-
+            cd /home/ubuntu/
             echo "---NVM (Node Version Manager) - NODE & NPM---"
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
             source ~/.bashrc
@@ -148,7 +148,7 @@ jobs:
             echo "-----PM2------"
             sudo npm install -g pm2
             sudo pm2 startup systemd
-            REPO_DIR="/home/ubuntu/gomarket"
+            REPO_DIR="gomarket"
             if [ -d "$REPO_DIR" ]; then
               echo "Repository already exists. Performing git pull..."
               cd $REPO_DIR
@@ -185,12 +185,16 @@ jobs:
         id: init
         run: terraform init -backend-config="bucket=$TF_STATE_BUCKET_NAME"
         working-directory: ./goinfra
-      - name: Terraform destroy
-        id: destroy
+      - name: Terraform plan
+        id: plan
         run: |-
-          terraform destroy \
+          terraform plan \
           -var="aws_account_id=$AWS_ACCOUNT_ID" \
           -var="instance_type=t2.micro" \
           -var="key_name=myec2" \
           -out=PLAN
+        working-directory: ./goinfra
+      - name: Terraform destroy
+        id: destroy
+        run: terraform destroy PLAN
         working-directory: ./goinfra
