@@ -1,0 +1,135 @@
+name: gomarket CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    types: [closed]
+    branches:
+      - destroy
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  TF_STATE_BUCKET_NAME: ${{ secrets.AWS_TF_STATE_BUCKET_NAME }}
+  PRIVATE_SSH_KEY: ${{ secrets.AWS_PRIVATE_SSH_KEY }}
+  SERVER_ENV: ${{ secrets.SERVER_ENV_VARIABLES }}
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+jobs:
+  golint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.9
+      - name: Format Terraform code
+        run: terraform fmt -check -diff -recursive
+        working-directory: ./goinfra
+
+  goinfra_launch:
+    needs: golint
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      SERVER_PUBLIC_IP: ${{ steps.set-ip.outputs.server_pub_ip }}
+      CLIENT_PUBLIC_IP: ${{ steps.set-ip.outputs.client_pub_ip }}
+    steps:
+      - name: Checkout
+        uses: actions/Checkout@v2
+      - name: setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_wrapper: false
+      - name: Terraform init
+        id: init
+        run: terraform init -backend-config="bucket=$TF_STATE_BUCKET_NAME"
+        working-directory: ./goinfra
+      - name: Terraform plan
+        id: plan
+        run: |-
+          terraform plan \
+          -var="aws_account_id=$AWS_ACCOUNT_ID" \
+          -var="instance_type=t2.micro" \
+          -var="key_name=myec2" \
+          -out=PLAN
+        working-directory: ./goinfra
+      - name: Terraform apply
+        id: apply
+        run: terraform apply PLAN
+        working-directory: ./goinfra
+      - name: Set outputs
+        id: set-ip
+        run: |-
+          echo "::set-output name=server_pub_ip::$(terraform output goserver_pub_ip)"
+          echo "::set-output name=client_pub_ip::$(terraform output goclient_pub_ip)"
+        working-directory: ./goinfra
+
+  goserver_launch:
+    needs: goinfra_launch
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set IP env variable
+        run: |-
+          echo SERVER_PUBLIC_IP=${{ needs.goinfra_launch.outputs.SERVER_PUBLIC_IP }} >> $GITHUB_ENV
+      - name: Deploy goserver to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SERVER_PUBLIC_IP }}
+          username: ubuntu
+          key: ${{ env.PRIVATE_SSH_KEY }}
+          envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
+          script: bash ./goserver/deploy.sh
+
+  goclient_launch:
+    needs: goserver_launch
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set IP env variable
+        run: |-
+          echo CLIENT_PUBLIC_IP=${{ needs.goinfra_launch.outputs.CLIENT_PUBLIC_IP }} >> $GITHUB_ENV
+      - name: Deploy goclient to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.CLIENT_PUBLIC_IP }}
+          username: ubuntu
+          key: ${{ env.PRIVATE_SSH_KEY }}
+          envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
+          script: bash ./goclient/deploy.sh
+
+  godestroy:
+    runs-on: ubuntu-latest
+    needs: golint
+    if: github.ref == 'destroy' && github.event.pull_request.merged == true
+    steps:
+      - name: Checkout
+        uses: actions/Checkout@v2
+      - name: setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_wrapper: false
+      - name: Terraform init
+        id: init
+        run: terraform init -backend-config="bucket=$TF_STATE_BUCKET_NAME"
+        working-directory: ./goinfra
+      - name: Terraform destroy
+        id: destroy
+        run: |-
+          terraform destroy \
+          -var="aws_account_id=$AWS_ACCOUNT_ID" \
+          -var="instance_type=t2.micro" \
+          -var="key_name=myec2" \
+          -out=PLAN
+        working-directory: ./goinfra
