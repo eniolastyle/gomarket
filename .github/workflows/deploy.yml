@@ -101,7 +101,7 @@ jobs:
             touch /home/ubuntu/deploy.sh
             echo "${{ env.SERVER_DEPLOY }}" > /home/ubuntu/deploy.sh
             chmod +x /home/ubuntu/deploy.sh
-            /home/ubuntu/deploy.sh
+            ./home/ubuntu/deploy.sh
 
   goclient_launch:
     needs: [goinfra_launch, goserver_launch]
@@ -116,7 +116,7 @@ jobs:
       - name: Copy Deploy Script to EC2
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ env.SERVER_PUBLIC_IP }}
+          host: ${{ env.CLIENT_PUBLIC_IP }}
           username: ubuntu
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
@@ -133,7 +133,7 @@ jobs:
             touch /home/ubuntu/deploy.sh
             echo "${{ env.CLIENT_DEPLOY }}" > /home/ubuntu/deploy.sh
             chmod +x /home/ubuntu/deploy.sh
-            /home/ubuntu/deploy.sh
+            ./home/ubuntu/deploy.sh
 
   godestroy:
     runs-on: ubuntu-latest
