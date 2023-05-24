@@ -31,7 +31,7 @@ data "aws_ami" "ubuntu" {
 }
 
 data "template_file" "nginx_data_script" {
-  template = file("./setup.tpl")
+  template = file("./goinfra/setup.tpl")
 }
 
 # Create a security group allowing inbound SSH and HTTP access
@@ -93,7 +93,9 @@ resource "aws_instance" "goclient" {
 # Create an S3 bucket
 resource "aws_s3_bucket" "gobucket" {
   bucket        = "gobucket"
-  acl           = "public-read"
+  acl {
+    owner = "BucketOwnerFullControl"
+  }
   force_destroy = true
 }
 
@@ -125,8 +127,10 @@ EOF
 resource "aws_s3_bucket_object" "assets" {
   bucket    = aws_s3_bucket.gobucket.id
   key       = "assets/"
-  source    = "./assets"
-  recursive = true
+  provisioner "file" {
+    source      = "./goinfra/goassets"
+    destination = "${aws_s3_bucket.gobucket.id}/goassets"
+  }
 }
 
 # Create a CloudWatch alarm for each server instance
