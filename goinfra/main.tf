@@ -90,47 +90,6 @@ resource "aws_instance" "goclient" {
   }
 }
 
-# Create an S3 bucket
-resource "aws_s3_bucket" "gobucket" {
-  bucket        = "gomarketbucket"
-#  acl 		= "public-read"
-  force_destroy = true
-}
-
-# Configure the S3 bucket policy to allow public read access
-resource "aws_s3_bucket_policy" "gobucket_policy" {
-  bucket = aws_s3_bucket.gobucket.id
-
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublicRead",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": [
-        "s3:GetObject"
-      ],
-      "Resource": [
-        "arn:aws:s3:::${aws_s3_bucket.gobucket.id}/*"
-      ]
-    }
-  ]
-}
-EOF
-}
-
-# Upload the assets folder to the S3 bucket
-resource "aws_s3_bucket_object" "assets" {
-  bucket    = aws_s3_bucket.gobucket.id
-  key       = "assets/"
-  provisioner "file" {
-    source      = "./goinfra/goassets"
-    destination = "${aws_s3_bucket.gobucket.id}/goassets"
-  }
-}
-
 # Create a CloudWatch alarm for each server instance
 resource "aws_cloudwatch_metric_alarm" "cpu_utilization_alarm" {
   count               = length(["${aws_instance.goserver.id}", "${aws_instance.goclient.id}"])
