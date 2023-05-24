@@ -99,12 +99,12 @@ jobs:
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |
             touch /home/ubuntu/deploy.sh
-            echo "${env.SERVER_DEPLOY}" > /home/ubuntu/deploy.sh
+            echo "${{ env.SERVER_DEPLOY }}" > /home/ubuntu/deploy.sh
             chmod +x /home/ubuntu/deploy.sh
             /home/ubuntu/deploy.sh
 
   goclient_launch:
-    needs: goserver_launch
+    needs: [goinfra_launch, goserver_launch]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
@@ -131,7 +131,7 @@ jobs:
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |
             touch /home/ubuntu/deploy.sh
-            echo "${env.CLIENT_DEPLOY}" > /home/ubuntu/deploy.sh
+            echo "${{ env.CLIENT_DEPLOY }}" > /home/ubuntu/deploy.sh
             chmod +x /home/ubuntu/deploy.sh
             /home/ubuntu/deploy.sh
 
