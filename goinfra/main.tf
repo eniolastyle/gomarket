@@ -131,8 +131,8 @@ resource "aws_s3_bucket_object" "assets" {
 
 # Create a list of server instance IDs to monitor
 variable "server_instance_ids" {
-  type    = list(string)
-  
+  type = list(string)
+
 }
 
 locals {
