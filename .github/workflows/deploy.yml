@@ -81,6 +81,15 @@ jobs:
       - name: Set IP env variable
         run: |-
           echo SERVER_PUBLIC_IP=${{ needs.goinfra_launch.outputs.SERVER_PUBLIC_IP }} >> $GITHUB_ENV
+      - name: Copy Deploy Script to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SERVER_PUBLIC_IP }}
+          username: ubuntu
+          key: ${{ env.PRIVATE_SSH_KEY }}
+          envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
+          source: ./goserver/deploy.sh
+          target: /home/ubuntu/deploy.sh
       - name: Deploy goserver to EC2
         uses: appleboy/ssh-action@master
         with:
@@ -88,7 +97,9 @@ jobs:
           username: ubuntu
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
-          script: bash ./goserver/deploy.sh
+          script: |
+            chmod +x /home/ubuntu/deploy.sh
+            /home/ubuntu/deploy.sh
 
   goclient_launch:
     needs: goserver_launch
@@ -100,6 +111,15 @@ jobs:
       - name: Set IP env variable
         run: |-
           echo CLIENT_PUBLIC_IP=${{ needs.goinfra_launch.outputs.CLIENT_PUBLIC_IP }} >> $GITHUB_ENV
+      - name: Copy Deploy Script to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SERVER_PUBLIC_IP }}
+          username: ubuntu
+          key: ${{ env.PRIVATE_SSH_KEY }}
+          envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
+          source: ./goclient/deploy.sh
+          target: /home/ubuntu/deploy.sh
       - name: Deploy goclient to EC2
         uses: appleboy/ssh-action@master
         with:
@@ -107,7 +127,9 @@ jobs:
           username: ubuntu
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
-          script: bash ./goclient/deploy.sh
+          script: |
+            chmod +x /home/ubuntu/deploy.sh
+            /home/ubuntu/deploy.sh
 
   godestroy:
     runs-on: ubuntu-latest
