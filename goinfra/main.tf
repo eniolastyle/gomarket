@@ -129,24 +129,10 @@ resource "aws_s3_bucket_object" "assets" {
   recursive = true
 }
 
-# Retrieve the instance IDs dynamically based on tags
-data "aws_instances" "servers" {
-  filter {
-    name   = "tag:Name"
-    values = ["goserver", "goclient"]
-  }
-}
-
-# Create a list of server instance IDs to monitor
-variable "server_instance_ids" {
-  type = list(string)
-  default = data.aws_instances.servers.instances[*].id
-}
-
 # Create a CloudWatch alarm for each server instance
 resource "aws_cloudwatch_metric_alarm" "cpu_utilization_alarm" {
-  count               = length(var.server_instance_ids)
-  alarm_name          = "CPUUtilizationAlarm_${var.server_instance_ids[count.index]}"
+  count               = length(["${aws_instance.goserver.id}", "${aws_instance.goclient.id}"])
+  alarm_name          = "CPUUtilizationAlarm_${["${aws_instance.goserver.id}", "${aws_instance.goclient.id}"][count.index]}"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = "1"
   metric_name         = "CPUUtilization"
@@ -159,7 +145,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_utilization_alarm" {
   alarm_enabled       = true
 
   dimensions = {
-    InstanceId = "${var.server_instance_ids[count.index]}"
+    InstanceId = "${["${aws_instance.goserver.id}", "${aws_instance.goclient.id}"][count.index]}"
   }
 }
 
