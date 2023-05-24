@@ -89,32 +89,43 @@ jobs:
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |-
-            cd /home/ubuntu/
-            echo "---NVM (Node Version Manager) - NODE & NPM---"
+            set -e
+
+            # Install NVM (Node Version Manager)
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-            source ~/.bashrc
+            source ~/.nvm/nvm.sh
+
+            # Install Node.js
             nvm install 16
             nvm alias default 16
+
+            # Verify Node.js and NPM installation
             node --version
             npm --version
-            echo "-----PM2------"
-            sudo npm install -g pm2
-            sudo pm2 startup systemd
+
+            # Install PM2
+            npm install -g pm2
+
+            # Clone or pull the repository
             REPO_DIR="gomarket"
             if [ -d "$REPO_DIR" ]; then
               echo "Repository already exists. Performing git pull..."
-              cd $REPO_DIR
-              git pull 
+              cd "$REPO_DIR"
+              git pull
             else
               echo "Repository not found. Cloning the repository..."
-              git clone https://github.com/eniolastyle/gomarket.git $REPO_DIR
-              cd $REPO_DIR
+              git clone https://github.com/eniolastyle/gomarket.git "$REPO_DIR"
+              cd "$REPO_DIR"
             fi
+
+            # Install dependencies and start the application
             cd goserver
             touch .env
             npm install
-            sudo pm2 delete goserver || true
+            pm2 delete goserver || true
             pm2 start app.js --name goserver
+
+            # Configure NGINX
             sudo rm -rf /etc/nginx/sites-available/default
             sudo cp default /etc/nginx/sites-available/ -r
             sudo systemctl restart nginx
