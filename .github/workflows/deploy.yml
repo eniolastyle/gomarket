@@ -89,6 +89,16 @@ jobs:
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |-
+            echo "---NVM (Node Version Manager) - NODE & NPM---"
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+            source ~/.bashrc
+            nvm install 16
+            nvm alias default 16
+            node --version
+            npm --version
+            echo "-----PM2------"
+            sudo npm install -g pm2
+            sudo pm2 startup systemd
             REPO_DIR="/home/ubuntu/gomarket"
             if [ -d "$REPO_DIR" ]; then
               echo "Repository already exists. Performing git pull..."
@@ -101,7 +111,8 @@ jobs:
             fi
             cd goserver
             touch .env
-            echo "${env.SERVER_ENV}" > .env
+            echo ${{ env.SERVER_ENV }}
+            echo "${{ env.SERVER_ENV }}" > .env
             npm install
             sudo pm2 delete goserver || true
             pm2 start app.js --name goserver
@@ -126,7 +137,17 @@ jobs:
           username: ubuntu
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
-          script: |
+          script: |-
+            echo "---NVM (Node Version Manager) - NODE & NPM---"
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+            source ~/.bashrc
+            nvm install 16
+            nvm alias default 16
+            node --version
+            npm --version
+            echo "-----PM2------"
+            sudo npm install -g pm2
+            sudo pm2 startup systemd
             REPO_DIR="/home/ubuntu/gomarket"
             if [ -d "$REPO_DIR" ]; then
               echo "Repository already exists. Performing git pull..."
