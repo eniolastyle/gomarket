@@ -197,5 +197,10 @@ jobs:
         working-directory: ./goinfra
       - name: Terraform destroy
         id: destroy
-        run: terraform destroy -auto-approve
+        run: |-
+          terraform destroy \
+          -auto-approve \
+          -var="aws_account_id=$AWS_ACCOUNT_ID" \
+          -var="instance_type=t2.micro" \
+          -var="key_name=myec2" \
         working-directory: ./goinfra
