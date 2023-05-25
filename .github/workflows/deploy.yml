@@ -197,5 +197,5 @@ jobs:
         working-directory: ./goinfra
       - name: Terraform destroy
         id: destroy
-        run: terraform destroy PLAN
+        run: terraform destroy -auto-approve
         working-directory: ./goinfra
