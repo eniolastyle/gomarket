@@ -15,9 +15,9 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   TF_STATE_BUCKET_NAME: ${{ secrets.AWS_TF_STATE_BUCKET_NAME }}
   PRIVATE_SSH_KEY: ${{ secrets.AWS_PRIVATE_SSH_KEY }}
-  SERVER_ENV: ${{ secrets.SERVER_ENV_VARIABLES }}
   AWS_REGION: us-east-1
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  # SERVER_ENV: ${{ secrets.SERVER_ENV_VARIABLES }}
 
 jobs:
   golint:
@@ -89,33 +89,36 @@ jobs:
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |-
-            echo "---NVM (Node Version Manager) - NODE & NPM---"
+            set -e
+            # Install NVM (Node Version Manager)
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-            source ~/.bashrc
+            source ~/.nvm/nvm.sh
+            # Install Node.js
             nvm install 16
             nvm alias default 16
+            # Verify Node.js and NPM installation
             node --version
             npm --version
-            echo "-----PM2------"
-            sudo npm install -g pm2
-            sudo pm2 startup systemd
-            REPO_DIR="/home/ubuntu/gomarket"
+            # Install PM2
+            npm install -g pm2
+            # Clone or pull the repository
+            REPO_DIR="gomarket"
             if [ -d "$REPO_DIR" ]; then
               echo "Repository already exists. Performing git pull..."
-              cd $REPO_DIR
-              git pull 
+              cd "$REPO_DIR"
+              git pull
             else
               echo "Repository not found. Cloning the repository..."
-              git clone https://github.com/eniolastyle/gomarket.git $REPO_DIR
-              cd $REPO_DIR
+              git clone https://github.com/eniolastyle/gomarket.git "$REPO_DIR"
+              cd "$REPO_DIR"
             fi
+            # Install dependencies and start the application
             cd goserver
             touch .env
-            echo ${{ env.SERVER_ENV }}
-            echo "${{ env.SERVER_ENV }}" > .env
             npm install
-            sudo pm2 delete goserver || true
+            pm2 delete goserver || true
             pm2 start app.js --name goserver
+            # Configure NGINX
             sudo rm -rf /etc/nginx/sites-available/default
             sudo cp default /etc/nginx/sites-available/ -r
             sudo systemctl restart nginx
@@ -138,26 +141,24 @@ jobs:
           key: ${{ env.PRIVATE_SSH_KEY }}
           envs: PRIVATE_SSH_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |-
-            echo "---NVM (Node Version Manager) - NODE & NPM---"
+            set -e
+            # Install NVM (Node Version Manager)
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-            source ~/.bashrc
+            source ~/.nvm/nvm.sh
+            # Install Node.js
             nvm install 16
             nvm alias default 16
+            # Verify Node.js and NPM installation
             node --version
             npm --version
-            echo "-----PM2------"
-            sudo npm install -g pm2
-            sudo pm2 startup systemd
-            REPO_DIR="/home/ubuntu/gomarket"
-            if [ -d "$REPO_DIR" ]; then
-              echo "Repository already exists. Performing git pull..."
-              cd $REPO_DIR
-              git pull 
-            else
-              echo "Repository not found. Cloning the repository..."
-              git clone https://github.com/eniolastyle/gomarket.git $REPO_DIR
-              cd $REPO_DIR
-            fi
+            # Install PM2
+            npm install -g pm2
+            # Clone or pull the repository
+            REPO_DIR="gomarket"
+            sudo rm -rf "$REPO_DIR" || true
+            git clone https://github.com/eniolastyle/gomarket.git "$REPO_DIR"
+            cd "$REPO_DIR"
+            # Install dependencies and start the application
             cd goclient
             touch .env
             echo REACT_APP_API_URL=http://"${{ needs.goinfra_launch.outputs.SERVER_PUBLIC_IP }}" > .env
@@ -185,12 +186,16 @@ jobs:
         id: init
         run: terraform init -backend-config="bucket=$TF_STATE_BUCKET_NAME"
         working-directory: ./goinfra
-      - name: Terraform destroy
-        id: destroy
+      - name: Terraform plan
+        id: plan
         run: |-
-          terraform destroy \
+          terraform plan \
           -var="aws_account_id=$AWS_ACCOUNT_ID" \
           -var="instance_type=t2.micro" \
           -var="key_name=myec2" \
           -out=PLAN
+        working-directory: ./goinfra
+      - name: Terraform destroy
+        id: destroy
+        run: terraform destroy PLAN
         working-directory: ./goinfra
